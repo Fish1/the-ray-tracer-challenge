@@ -1,5 +1,6 @@
 use super::compare;
 
+#[derive(Debug)]
 pub struct Tuple {
     pub x: f64,
     pub y: f64,
@@ -27,6 +28,18 @@ impl std::ops::Sub for Tuple {
             y: self.y - rhs.y,
             z: self.z - rhs.z,
             w: self.w - rhs.w,
+        }
+    }
+}
+
+impl std::ops::Mul for Tuple {
+    type Output = Tuple;
+    fn mul(self, rhs: Tuple) -> Self::Output {
+        Tuple {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+            z: self.z * rhs.z,
+            w: self.w * rhs.w,
         }
     }
 }
@@ -94,6 +107,18 @@ impl Tuple {
             z: self.z / magnitude,
             w: self.w / magnitude,
         }
+    }
+
+    pub fn dot(&self, other: &Tuple) -> f64 {
+        self.x * other.x + self.y * other.y + self.z * other.z + self.w * other.w
+    }
+
+    pub fn cross(&self, other: &Tuple) -> Tuple {
+        Tuple::new_vector(
+            self.y * other.z - self.z * other.y,
+            self.z * other.x - self.x * other.z,
+            self.x * other.y - self.y * other.x,
+        )
     }
 
     pub fn equals(&self, other: &Tuple) -> bool {
@@ -241,5 +266,37 @@ mod tests {
     fn normalize_3() {
         let x = Tuple::new_vector(1.0, 2.0, 3.0);
         assert_eq!(x.normalize().magnitude() - 1.0 < f64::EPSILON, true);
+    }
+
+    #[test]
+    fn dot_1() {
+        let a = Tuple::new_vector(1.0, 2.0, 3.0);
+        let b = Tuple::new_vector(2.0, 3.0, 4.0);
+
+        let result = a.dot(&b);
+
+        assert_eq!(compare::equal(result, 20.0), true);
+    }
+
+    #[test]
+    fn cross_1() {
+        let a = Tuple::new_vector(1.0, 2.0, 3.0);
+        let b = Tuple::new_vector(2.0, 3.0, 4.0);
+
+        let ab_result = a.cross(&b);
+        let ab_expect = Tuple::new_vector(-1.0, 2.0, -1.0);
+
+        assert_eq!(ab_result.equals(&ab_expect), true);
+    }
+
+    #[test]
+    fn cross_2() {
+        let a = Tuple::new_vector(1.0, 2.0, 3.0);
+        let b = Tuple::new_vector(2.0, 3.0, 4.0);
+
+        let ba_result = b.cross(&a);
+        let ba_expect = Tuple::new_vector(1.0, -2.0, 1.0);
+
+        assert_eq!(ba_result.equals(&ba_expect), true);
     }
 }
