@@ -1,6 +1,6 @@
 use super::compare;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Tuple {
     pub x: f64,
     pub y: f64,
@@ -17,6 +17,15 @@ impl std::ops::Add for Tuple {
             z: self.z + rhs.z,
             w: self.w + rhs.w,
         }
+    }
+}
+
+impl std::ops::AddAssign<Tuple> for Tuple {
+    fn add_assign(&mut self, rhs: Tuple) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+        self.w += rhs.w;
     }
 }
 
@@ -50,6 +59,15 @@ impl std::ops::MulAssign<f64> for Tuple {
         self.y *= rhs;
         self.z *= rhs;
         self.w *= rhs;
+    }
+}
+
+impl std::ops::MulAssign<Tuple> for Tuple {
+    fn mul_assign(&mut self, rhs: Tuple) {
+        self.x *= rhs.x;
+        self.y *= rhs.y;
+        self.z *= rhs.z;
+        self.w *= rhs.w;
     }
 }
 
