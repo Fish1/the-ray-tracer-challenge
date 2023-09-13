@@ -1,3 +1,5 @@
+use super::tuple::Tuple;
+
 #[derive(Debug)]
 pub struct Matrix {
     pub width: usize,
@@ -5,27 +7,24 @@ pub struct Matrix {
     pub data: Vec<f64>,
 }
 
-impl std::ops::Mul for Matrix {
+impl std::ops::Mul<Matrix> for Matrix {
     type Output = Matrix;
     fn mul(self, rhs: Matrix) -> Self::Output {
         assert!(self.width == rhs.height);
         let mut data = vec![];
 
         for index in 0..rhs.width * rhs.height {
-            let y = index / rhs.height;
-            let x = index % rhs.width;
+            let result_y = index / rhs.width;
+            let result_x = index % rhs.width;
 
-            let mut result = 0.0;
-            for index2 in 0..rhs.height {
-                println!("a {} {}", y, index2);
-                let left = self.get(y, index2);
-                println!("b {} {}", index2, x);
-                println!("{:?}", rhs);
-                let right = rhs.get(index2, x);
-                result += left * right;
+            let mut result_value = 0.0;
+            for rhs_y in 0..rhs.height {
+                let left = self.get(result_y, rhs_y);
+                let right = rhs.get(rhs_y, result_x);
+                result_value += left * right;
             }
 
-            data.push(result);
+            data.push(result_value);
         }
 
         Matrix {
@@ -33,6 +32,15 @@ impl std::ops::Mul for Matrix {
             height: rhs.height,
             data,
         }
+    }
+}
+
+impl std::ops::Mul<Tuple> for Matrix {
+    type Output = Tuple;
+
+    fn mul(self, rhs: Tuple) -> Self::Output {
+        let rhs_matrix = Matrix::create_matrix(1, 4, vec![rhs.x, rhs.y, rhs.z, rhs.w]);
+        (self * rhs_matrix).to_tuple()
     }
 }
 
@@ -46,8 +54,26 @@ impl Matrix {
         }
     }
 
+    pub fn create_identity(size: usize) -> Matrix {
+        let mut data = vec![];
+        for i in 0..size * size {
+            if i % (size + (i / size)) == 0 {
+                data.push(1.0);
+            } else {
+                data.push(0.0);
+            }
+        }
+        println!("{:?}", data);
+        Matrix {
+            width: size,
+            height: size,
+            data,
+        }
+    }
+
     pub fn get(&self, y: usize, x: usize) -> f64 {
-        return self.data[self.height * y + x];
+        assert!(x < self.width && y < self.height);
+        return self.data[self.width * y + x];
     }
 
     pub fn equals(&self, other: &Matrix) -> bool {
@@ -62,6 +88,11 @@ impl Matrix {
         }
 
         return true;
+    }
+
+    pub fn to_tuple(&self) -> Tuple {
+        assert!((self.width == 4 && self.height == 1) || (self.width == 1 && self.height == 4));
+        Tuple::new_tuple(self.data[0], self.data[1], self.data[2], self.data[3])
     }
 }
 
@@ -171,10 +202,32 @@ mod tests {
         let m2 = Matrix::create_matrix(1, 4, vec![1.0, 2.0, 3.0, 1.0]);
 
         let result = m1 * m2;
-        println!("{:?}", result);
-
         let expect = Matrix::create_matrix(1, 4, vec![18.0, 24.0, 33.0, 1.0]);
 
         assert!(result.equals(&expect));
+    }
+
+    #[test]
+    fn multiplication_tuple() {
+        let m1 = Matrix::create_matrix(
+            4,
+            4,
+            vec![
+                1.0, 2.0, 3.0, 4.0, 2.0, 4.0, 4.0, 2.0, 8.0, 6.0, 4.0, 1.0, 0.0, 0.0, 0.0, 1.0,
+            ],
+        );
+
+        let t1 = Tuple::new_tuple(1.0, 2.0, 3.0, 1.0);
+
+        let result = m1 * t1;
+        let expect = Tuple::new_tuple(18.0, 24.0, 33.0, 1.0);
+
+        assert!(result.equals(&expect));
+    }
+
+    #[test]
+    fn create_identity() {
+        let m1 = Matrix::create_identity(4);
+        println!("{:?}", m1);
     }
 }
