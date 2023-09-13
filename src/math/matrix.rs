@@ -7,9 +7,9 @@ pub struct Matrix {
     pub data: Vec<f64>,
 }
 
-impl std::ops::Mul<Matrix> for Matrix {
+impl std::ops::Mul<&Matrix> for Matrix {
     type Output = Matrix;
-    fn mul(self, rhs: Matrix) -> Self::Output {
+    fn mul(self, rhs: &Matrix) -> Self::Output {
         assert!(self.width == rhs.height);
         let mut data = vec![];
 
@@ -40,7 +40,7 @@ impl std::ops::Mul<Tuple> for Matrix {
 
     fn mul(self, rhs: Tuple) -> Self::Output {
         let rhs_matrix = Matrix::create_matrix(1, 4, vec![rhs.x, rhs.y, rhs.z, rhs.w]);
-        (self * rhs_matrix).to_tuple()
+        (self * &rhs_matrix).to_tuple()
     }
 }
 
@@ -57,13 +57,14 @@ impl Matrix {
     pub fn create_identity(size: usize) -> Matrix {
         let mut data = vec![];
         for i in 0..size * size {
-            if i % (size + (i / size)) == 0 {
+            let row = i / size;
+            let col = i % size;
+            if row == col {
                 data.push(1.0);
             } else {
                 data.push(0.0);
             }
         }
-        println!("{:?}", data);
         Matrix {
             width: size,
             height: size,
@@ -176,7 +177,7 @@ mod tests {
             ],
         );
 
-        let result = m1 * m2;
+        let result = m1 * &m2;
         let expect = Matrix::create_matrix(
             4,
             4,
@@ -201,7 +202,7 @@ mod tests {
 
         let m2 = Matrix::create_matrix(1, 4, vec![1.0, 2.0, 3.0, 1.0]);
 
-        let result = m1 * m2;
+        let result = m1 * &m2;
         let expect = Matrix::create_matrix(1, 4, vec![18.0, 24.0, 33.0, 1.0]);
 
         assert!(result.equals(&expect));
@@ -228,6 +229,24 @@ mod tests {
     #[test]
     fn create_identity() {
         let m1 = Matrix::create_identity(4);
-        println!("{:?}", m1);
+        assert!(m1.get(0, 0) == 1.0);
+        assert!(m1.get(1, 1) == 1.0);
+        assert!(m1.get(2, 2) == 1.0);
+        assert!(m1.get(3, 3) == 1.0);
+    }
+
+    #[test]
+    fn identity_multiplication() {
+        let m1 = Matrix::create_identity(4);
+        let m2 = Matrix::create_matrix(
+            4,
+            4,
+            vec![
+                3.0, 4.0, 5.0, 6.0, 1.0, 2.0, 3.0, 4.0, 3.0, 4.0, 5.0, 6.0, 1.0, 2.0, 3.0, 4.0,
+            ],
+        );
+
+        let result = m1 * &m2;
+        assert!(result.equals(&m2));
     }
 }
