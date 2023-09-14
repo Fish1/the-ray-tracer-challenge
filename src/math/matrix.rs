@@ -95,6 +95,47 @@ impl Matrix {
         assert!((self.width == 4 && self.height == 1) || (self.width == 1 && self.height == 4));
         Tuple::new_tuple(self.data[0], self.data[1], self.data[2], self.data[3])
     }
+
+    pub fn transpose(&self) -> Matrix {
+        let mut data = vec![];
+
+        for x in 0..self.width {
+            for y in 0..self.height {
+                data.push(self.get(y, x));
+            }
+        }
+
+        Matrix {
+            width: self.height,
+            height: self.width,
+            data,
+        }
+    }
+
+    pub fn determinate_2x2(&self) -> f64 {
+        assert!(self.width == 2 && self.height == 2);
+        (self.get(0, 0) * self.get(1, 1)) - (self.get(0, 1) * self.get(1, 0))
+    }
+
+    pub fn submatrix(&self, row: usize, col: usize) -> Matrix {
+        let mut data = vec![];
+
+        for y in 0..self.height {
+            for x in 0..self.width {
+                if x == col || y == row {
+                    continue;
+                }
+
+                data.push(self.get(y, x));
+            }
+        }
+
+        Matrix {
+            width: self.width - 1,
+            height: self.height - 1,
+            data,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -248,5 +289,68 @@ mod tests {
 
         let result = m1 * &m2;
         assert!(result.equals(&m2));
+    }
+
+    #[test]
+    fn transpose() {
+        let m1 = Matrix::create_matrix(
+            4,
+            4,
+            vec![
+                0.0, 9.0, 3.0, 0.0, 9.0, 8.0, 0.0, 8.0, 1.0, 8.0, 5.0, 3.0, 0.0, 0.0, 5.0, 8.0,
+            ],
+        );
+
+        let expect = Matrix::create_matrix(
+            4,
+            4,
+            vec![
+                0.0, 9.0, 1.0, 0.0, 9.0, 8.0, 8.0, 0.0, 3.0, 0.0, 5.0, 5.0, 0.0, 8.0, 3.0, 8.0,
+            ],
+        );
+
+        let result = m1.transpose();
+        println!("{:?}", m1);
+        println!("{:?}", result);
+        println!("{:?}", expect);
+
+        assert!(result.equals(&expect));
+    }
+
+    #[test]
+    fn determinate_2x2() {
+        let m1 = Matrix::create_matrix(2, 2, vec![1.0, 5.0, -3.0, 2.0]);
+        let result = m1.determinate_2x2();
+        let expect = 17.0;
+        assert!(result == expect);
+    }
+
+    #[test]
+    fn submatrix_1() {
+        let m1 = Matrix::create_matrix(3, 3, vec![1.0, 5.0, 0.0, -3.0, 2.0, 7.0, 0.0, 6.0, -3.0]);
+
+        let result = m1.submatrix(0, 2);
+
+        let expect = Matrix::create_matrix(2, 2, vec![-3.0, 2.0, 0.0, 6.0]);
+
+        assert!(result.equals(&expect));
+    }
+
+    #[test]
+    fn submatrix_2() {
+        let m1 = Matrix::create_matrix(
+            4,
+            4,
+            vec![
+                -6.0, 1.0, 1.0, 6.0, -8.0, 5.0, 8.0, 6.0, -1.0, 0.0, 8.0, 2.0, -7.0, 1.0, -1.0, 1.0,
+            ],
+        );
+
+        let result = m1.submatrix(2, 1);
+
+        let expect =
+            Matrix::create_matrix(3, 3, vec![-6.0, 1.0, 6.0, -8.0, 8.0, 6.0, -7.0, -1.0, 1.0]);
+
+        assert!(result.equals(&expect));
     }
 }
