@@ -1,3 +1,5 @@
+use std::ops::Neg;
+
 use super::tuple::Tuple;
 
 #[derive(Debug)]
@@ -134,6 +136,21 @@ impl Matrix {
             width: self.width - 1,
             height: self.height - 1,
             data,
+        }
+    }
+
+    pub fn minor(&self, row: usize, col: usize) -> f64 {
+        assert!(self.width == 3 && self.height == 3);
+        self.submatrix(row, col).determinate_2x2()
+    }
+
+    pub fn cofactor(&self, row: usize, col: usize) -> f64 {
+        let pos = self.width * row + col;
+        let minor = self.minor(row, col);
+        if pos % 2 == 0 {
+            minor
+        } else {
+            minor.neg()
         }
     }
 }
@@ -310,10 +327,6 @@ mod tests {
         );
 
         let result = m1.transpose();
-        println!("{:?}", m1);
-        println!("{:?}", result);
-        println!("{:?}", expect);
-
         assert!(result.equals(&expect));
     }
 
@@ -352,5 +365,26 @@ mod tests {
             Matrix::create_matrix(3, 3, vec![-6.0, 1.0, 6.0, -8.0, 8.0, 6.0, -7.0, -1.0, 1.0]);
 
         assert!(result.equals(&expect));
+    }
+
+    #[test]
+    fn calcualte_minor() {
+        let result =
+            Matrix::create_matrix(3, 3, vec![3.0, 5.0, 0.0, 2.0, -1.0, -7.0, 6.0, -1.0, 5.0])
+                .minor(1, 0);
+        assert!(result == 25.0);
+    }
+
+    #[test]
+    fn calculate_cofactor() {
+        let m1 = Matrix::create_matrix(3, 3, vec![3.0, 5.0, 0.0, 2.0, -1.0, -7.0, 6.0, -1.0, 5.0]);
+        let minor1 = m1.minor(0, 0);
+        let cofactor1 = m1.cofactor(0, 0);
+        let minor2 = m1.minor(1, 0);
+        let cofactor2 = m1.cofactor(1, 0);
+        assert!(minor1 == -12.0);
+        assert!(cofactor1 == -12.0);
+        assert!(minor2 == 25.0);
+        assert!(cofactor2 == -25.0);
     }
 }
