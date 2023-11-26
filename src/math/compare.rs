@@ -1,3 +1,5 @@
+const epsilon: f64 = 0.0001;
+
 pub fn equal(a: f64, b: f64) -> bool {
-    (a - b).abs() < f64::EPSILON
+    (a - b).abs() < epsilon
 }

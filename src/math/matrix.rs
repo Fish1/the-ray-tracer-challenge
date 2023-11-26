@@ -1,12 +1,30 @@
 use std::ops::Neg;
 
-use super::tuple::Tuple;
+use super::{compare::equal, tuple::Tuple};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Matrix {
     pub width: usize,
     pub height: usize,
     pub data: Vec<f64>,
+}
+
+impl std::ops::Mul<f64> for Matrix {
+    type Output = Matrix;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        let mut data = vec![];
+
+        for value in self.data {
+            data.push(value * rhs);
+        }
+
+        Matrix {
+            width: self.width,
+            height: self.height,
+            data,
+        }
+    }
 }
 
 impl std::ops::Mul<&Matrix> for Matrix {
@@ -85,7 +103,7 @@ impl Matrix {
         }
 
         for (index, value) in self.data.iter().enumerate() {
-            if other.data[index] != *value {
+            if equal(other.data[index], *value) == false {
                 return false;
             }
         }
@@ -114,11 +132,6 @@ impl Matrix {
         }
     }
 
-    pub fn determinate_2x2(&self) -> f64 {
-        assert!(self.width == 2 && self.height == 2);
-        (self.get(0, 0) * self.get(1, 1)) - (self.get(0, 1) * self.get(1, 0))
-    }
-
     pub fn submatrix(&self, row: usize, col: usize) -> Matrix {
         let mut data = vec![];
 
@@ -140,23 +153,66 @@ impl Matrix {
     }
 
     pub fn minor(&self, row: usize, col: usize) -> f64 {
-        assert!(self.width == 3 && self.height == 3);
-        self.submatrix(row, col).determinate_2x2()
+        self.submatrix(row, col).determinant()
     }
 
     pub fn cofactor(&self, row: usize, col: usize) -> f64 {
-        let pos = self.width * row + col;
         let minor = self.minor(row, col);
-        if pos % 2 == 0 {
+        if (row + col) % 2 == 0 {
             minor
         } else {
             minor.neg()
         }
     }
+
+    pub fn determinate_2x2(&self) -> f64 {
+        assert!(self.width == 2 && self.height == 2);
+        (self.get(0, 0) * self.get(1, 1)) - (self.get(0, 1) * self.get(1, 0))
+    }
+
+    pub fn determinant(&self) -> f64 {
+        if self.width == 2 && self.height == 2 {
+            return self.determinate_2x2();
+        }
+
+        let mut determinant = 0.0;
+
+        for index in 0..self.width {
+            let cofactor = self.cofactor(0, index);
+            let data = self.data[index];
+            determinant += data * cofactor;
+        }
+
+        return determinant;
+    }
+
+    pub fn is_invertable(&self) -> bool {
+        self.determinant() != 0.0
+    }
+
+    pub fn inverse(&self) -> Option<Matrix> {
+        if self.is_invertable() == false {
+            return None;
+        }
+
+        let mut data = vec![];
+        for y in 0..self.height {
+            for x in 0..self.width {
+                data.push(self.cofactor(y, x));
+            }
+        }
+
+        let result = Matrix::create_matrix(self.width, self.height, data).transpose()
+            * (1.0 / self.determinant());
+
+        Some(result)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Mul;
+
     use super::*;
 
     #[test]
@@ -386,5 +442,140 @@ mod tests {
         assert!(cofactor1 == -12.0);
         assert!(minor2 == 25.0);
         assert!(cofactor2 == -25.0);
+    }
+
+    #[test]
+    fn large_determinant_3x3() {
+        let m1 = Matrix::create_matrix(3, 3, vec![1.0, 2.0, 6.0, -5.0, 8.0, -4.0, 2.0, 6.0, 4.0]);
+        let cofactor1 = m1.cofactor(0, 0);
+        let cofactor2 = m1.cofactor(0, 1);
+        let cofactor3 = m1.cofactor(0, 2);
+        let determinant = m1.determinant();
+        assert!(cofactor1 == 56.0);
+        assert!(cofactor2 == 12.0);
+        assert!(cofactor3 == -46.0);
+        assert!(determinant == -196.0);
+    }
+
+    #[test]
+    fn large_determinant_4x4() {
+        let m1 = Matrix::create_matrix(
+            4,
+            4,
+            vec![
+                -2.0, -8.0, 3.0, 5.0, -3.0, 1.0, 7.0, 3.0, 1.0, 2.0, -9.0, 6.0, -6.0, 7.0, 7.0,
+                -9.0,
+            ],
+        );
+        let cofactor1 = m1.cofactor(0, 0);
+        let cofactor2 = m1.cofactor(0, 1);
+        let cofactor3 = m1.cofactor(0, 2);
+        let cofactor4 = m1.cofactor(0, 3);
+        let determinant = m1.determinant();
+
+        assert!(cofactor1 == 690.0);
+        assert!(cofactor2 == 447.0);
+        assert!(cofactor3 == 210.0);
+        assert!(cofactor4 == 51.0);
+        assert!(determinant == -4071.0);
+    }
+
+    #[test]
+    fn is_invertable() {
+        let m1 = Matrix::create_matrix(
+            4,
+            4,
+            vec![
+                6.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 6.0, 4.0, -9.0, 3.0, -7.0, 9.0, 1.0, 7.0, -6.0,
+            ],
+        );
+        assert!(m1.is_invertable() == true);
+    }
+
+    #[test]
+    fn is_not_invertable() {
+        let m1 = Matrix::create_matrix(
+            4,
+            4,
+            vec![
+                -4.0, 2.0, -2.0, -3.0, 9.0, 6.0, 2.0, 6.0, 0.0, -5.0, 1.0, -5.0, 0.0, 0.0, 0.0, 0.0,
+            ],
+        );
+        assert!(m1.is_invertable() == false);
+    }
+
+    #[test]
+    fn inverse_1() {
+        let m1 = Matrix::create_matrix(
+            4,
+            4,
+            vec![
+                8.0, -5.0, 9.0, 2.0, 7.0, 5.0, 6.0, 1.0, -6.0, 0.0, 9.0, 6.0, -3.0, 0.0, -9.0, -4.0,
+            ],
+        );
+
+        let expected = Matrix::create_matrix(
+            4,
+            4,
+            vec![
+                -0.15385, -0.15385, -0.28205, -0.53845, -0.07692, 0.12308, 0.02564, 0.03077,
+                0.35897, 0.35897, 0.43590, 0.92308, -0.69231, -0.69231, -0.76923, -1.92308,
+            ],
+        );
+
+        let inverse = m1.inverse().expect("failed to inverse");
+
+        assert!(inverse.equals(&expected) == true);
+    }
+
+    #[test]
+    fn inverse_2() {
+        let m1 = Matrix::create_matrix(
+            4,
+            4,
+            vec![
+                9.0, 3.0, 0.0, 9.0, -5.0, -2.0, -6.0, -3.0, -4.0, 9.0, 6.0, 4.0, -7.0, 6.0, 6.0,
+                2.0,
+            ],
+        );
+
+        let expected = Matrix::create_matrix(
+            4,
+            4,
+            vec![
+                -0.04074, -0.07778, 0.14444, -0.22222, -0.07778, 0.03333, 0.36667, -0.33333,
+                -0.02901, -0.14630, -0.10926, 0.12963, 0.17778, 0.06667, -0.26667, 0.33333,
+            ],
+        );
+
+        let inverse = m1.inverse().expect("failed to inverse");
+
+        assert!(inverse.equals(&expected) == true);
+    }
+
+    #[test]
+    fn test_inverse() {
+        let m1 = Matrix::create_matrix(
+            4,
+            4,
+            vec![
+                3.0, -9.0, 7.0, 3.0, 3.0, -8.0, 2.0, -9.0, -4.0, 4.0, 4.0, 1.0, -6.0, 5.0, -1.0,
+                1.0,
+            ],
+        );
+
+        let m2 = Matrix::create_matrix(
+            4,
+            4,
+            vec![
+                8.0, 2.0, 2.0, 2.0, 3.0, -1.0, 7.0, 0.0, 7.0, 0.0, 5.0, 4.0, 6.0, -2.0, 0.0, 5.0,
+            ],
+        );
+
+        let m3 = m1.clone() * &m2;
+
+        let m4 = m3 * &m2.inverse().expect("m2 didn't get invsersed");
+
+        assert!(m4.equals(&m1) == true);
     }
 }
