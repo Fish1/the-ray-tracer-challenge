@@ -27,7 +27,7 @@ impl std::ops::Mul<f64> for Matrix {
     }
 }
 
-impl std::ops::Mul<&Matrix> for Matrix {
+impl std::ops::Mul<&Matrix> for &Matrix {
     type Output = Matrix;
     fn mul(self, rhs: &Matrix) -> Self::Output {
         assert!(self.width == rhs.height);
@@ -55,17 +55,17 @@ impl std::ops::Mul<&Matrix> for Matrix {
     }
 }
 
-impl std::ops::Mul<Tuple> for Matrix {
+impl std::ops::Mul<Tuple> for &Matrix {
     type Output = Tuple;
 
     fn mul(self, rhs: Tuple) -> Self::Output {
-        let rhs_matrix = Matrix::create_matrix(1, 4, vec![rhs.x, rhs.y, rhs.z, rhs.w]);
+        let rhs_matrix = Matrix::new(1, 4, vec![rhs.x, rhs.y, rhs.z, rhs.w]);
         (self * &rhs_matrix).to_tuple()
     }
 }
 
 impl Matrix {
-    pub fn create_matrix(width: usize, height: usize, data: Vec<f64>) -> Matrix {
+    pub fn new(width: usize, height: usize, data: Vec<f64>) -> Matrix {
         assert!(data.len() == width * height);
         Matrix {
             width,
@@ -74,7 +74,7 @@ impl Matrix {
         }
     }
 
-    pub fn create_identity(size: usize) -> Matrix {
+    pub fn new_identity(size: usize) -> Matrix {
         let mut data = vec![];
         for i in 0..size * size {
             let row = i / size;
@@ -202,8 +202,8 @@ impl Matrix {
             }
         }
 
-        let result = Matrix::create_matrix(self.width, self.height, data).transpose()
-            * (1.0 / self.determinant());
+        let result =
+            Matrix::new(self.width, self.height, data).transpose() * (1.0 / self.determinant());
 
         Some(result)
     }
@@ -211,13 +211,11 @@ impl Matrix {
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Mul;
-
     use super::*;
 
     #[test]
     fn create_matrix_2x2() {
-        let matrix = Matrix::create_matrix(2, 2, vec![1.5, 2.5, 9.5, 4.5]);
+        let matrix = Matrix::new(2, 2, vec![1.5, 2.5, 9.5, 4.5]);
 
         assert!(matrix.get(0, 0) == 1.5);
         assert!(matrix.get(0, 1) == 2.5);
@@ -227,7 +225,7 @@ mod tests {
 
     #[test]
     fn create_matrix_3x3() {
-        let matrix = Matrix::create_matrix(
+        let matrix = Matrix::new(
             3,
             3,
             vec![-3.0, -2.0, -1.0, -4.0, -3.0, -2.0, 1.5, 2.5, 3.5],
@@ -241,7 +239,7 @@ mod tests {
 
     #[test]
     fn create_matrix_4x4() {
-        let matrix = Matrix::create_matrix(
+        let matrix = Matrix::new(
             4,
             4,
             vec![
@@ -261,21 +259,21 @@ mod tests {
 
     #[test]
     fn matrix_equality() {
-        let m1 = Matrix::create_matrix(2, 2, vec![1.0, 2.0, 3.0, 4.0]);
-        let m2 = Matrix::create_matrix(2, 2, vec![1.0, 2.0, 3.0, 4.0]);
+        let m1 = Matrix::new(2, 2, vec![1.0, 2.0, 3.0, 4.0]);
+        let m2 = Matrix::new(2, 2, vec![1.0, 2.0, 3.0, 4.0]);
         assert!(m1.equals(&m2));
     }
 
     #[test]
     fn matrix_inequality() {
-        let m1 = Matrix::create_matrix(2, 2, vec![1.0, 2.0, 3.0, 4.0]);
-        let m2 = Matrix::create_matrix(2, 2, vec![1.0, 2.0, 3.0, 4.5]);
+        let m1 = Matrix::new(2, 2, vec![1.0, 2.0, 3.0, 4.0]);
+        let m2 = Matrix::new(2, 2, vec![1.0, 2.0, 3.0, 4.5]);
         assert!(m1.equals(&m2) == false);
     }
 
     #[test]
     fn multiplication() {
-        let m1 = Matrix::create_matrix(
+        let m1 = Matrix::new(
             4,
             4,
             vec![
@@ -283,7 +281,7 @@ mod tests {
             ],
         );
 
-        let m2 = Matrix::create_matrix(
+        let m2 = Matrix::new(
             4,
             4,
             vec![
@@ -291,8 +289,8 @@ mod tests {
             ],
         );
 
-        let result = m1 * &m2;
-        let expect = Matrix::create_matrix(
+        let result = &m1 * &m2;
+        let expect = Matrix::new(
             4,
             4,
             vec![
@@ -306,7 +304,7 @@ mod tests {
 
     #[test]
     fn multiplication_diff_size() {
-        let m1 = Matrix::create_matrix(
+        let m1 = Matrix::new(
             4,
             4,
             vec![
@@ -314,17 +312,17 @@ mod tests {
             ],
         );
 
-        let m2 = Matrix::create_matrix(1, 4, vec![1.0, 2.0, 3.0, 1.0]);
+        let m2 = Matrix::new(1, 4, vec![1.0, 2.0, 3.0, 1.0]);
 
-        let result = m1 * &m2;
-        let expect = Matrix::create_matrix(1, 4, vec![18.0, 24.0, 33.0, 1.0]);
+        let result = &m1 * &m2;
+        let expect = Matrix::new(1, 4, vec![18.0, 24.0, 33.0, 1.0]);
 
         assert!(result.equals(&expect));
     }
 
     #[test]
     fn multiplication_tuple() {
-        let m1 = Matrix::create_matrix(
+        let m1 = Matrix::new(
             4,
             4,
             vec![
@@ -334,7 +332,7 @@ mod tests {
 
         let t1 = Tuple::new_tuple(1.0, 2.0, 3.0, 1.0);
 
-        let result = m1 * t1;
+        let result = &m1 * t1;
         let expect = Tuple::new_tuple(18.0, 24.0, 33.0, 1.0);
 
         assert!(result.equals(&expect));
@@ -342,7 +340,7 @@ mod tests {
 
     #[test]
     fn create_identity() {
-        let m1 = Matrix::create_identity(4);
+        let m1 = Matrix::new_identity(4);
         assert!(m1.get(0, 0) == 1.0);
         assert!(m1.get(1, 1) == 1.0);
         assert!(m1.get(2, 2) == 1.0);
@@ -351,8 +349,8 @@ mod tests {
 
     #[test]
     fn identity_multiplication() {
-        let m1 = Matrix::create_identity(4);
-        let m2 = Matrix::create_matrix(
+        let m1 = Matrix::new_identity(4);
+        let m2 = Matrix::new(
             4,
             4,
             vec![
@@ -360,13 +358,13 @@ mod tests {
             ],
         );
 
-        let result = m1 * &m2;
+        let result = &m1 * &m2;
         assert!(result.equals(&m2));
     }
 
     #[test]
     fn transpose() {
-        let m1 = Matrix::create_matrix(
+        let m1 = Matrix::new(
             4,
             4,
             vec![
@@ -374,7 +372,7 @@ mod tests {
             ],
         );
 
-        let expect = Matrix::create_matrix(
+        let expect = Matrix::new(
             4,
             4,
             vec![
@@ -388,7 +386,7 @@ mod tests {
 
     #[test]
     fn determinate_2x2() {
-        let m1 = Matrix::create_matrix(2, 2, vec![1.0, 5.0, -3.0, 2.0]);
+        let m1 = Matrix::new(2, 2, vec![1.0, 5.0, -3.0, 2.0]);
         let result = m1.determinate_2x2();
         let expect = 17.0;
         assert!(result == expect);
@@ -396,18 +394,18 @@ mod tests {
 
     #[test]
     fn submatrix_1() {
-        let m1 = Matrix::create_matrix(3, 3, vec![1.0, 5.0, 0.0, -3.0, 2.0, 7.0, 0.0, 6.0, -3.0]);
+        let m1 = Matrix::new(3, 3, vec![1.0, 5.0, 0.0, -3.0, 2.0, 7.0, 0.0, 6.0, -3.0]);
 
         let result = m1.submatrix(0, 2);
 
-        let expect = Matrix::create_matrix(2, 2, vec![-3.0, 2.0, 0.0, 6.0]);
+        let expect = Matrix::new(2, 2, vec![-3.0, 2.0, 0.0, 6.0]);
 
         assert!(result.equals(&expect));
     }
 
     #[test]
     fn submatrix_2() {
-        let m1 = Matrix::create_matrix(
+        let m1 = Matrix::new(
             4,
             4,
             vec![
@@ -417,8 +415,7 @@ mod tests {
 
         let result = m1.submatrix(2, 1);
 
-        let expect =
-            Matrix::create_matrix(3, 3, vec![-6.0, 1.0, 6.0, -8.0, 8.0, 6.0, -7.0, -1.0, 1.0]);
+        let expect = Matrix::new(3, 3, vec![-6.0, 1.0, 6.0, -8.0, 8.0, 6.0, -7.0, -1.0, 1.0]);
 
         assert!(result.equals(&expect));
     }
@@ -426,14 +423,13 @@ mod tests {
     #[test]
     fn calcualte_minor() {
         let result =
-            Matrix::create_matrix(3, 3, vec![3.0, 5.0, 0.0, 2.0, -1.0, -7.0, 6.0, -1.0, 5.0])
-                .minor(1, 0);
+            Matrix::new(3, 3, vec![3.0, 5.0, 0.0, 2.0, -1.0, -7.0, 6.0, -1.0, 5.0]).minor(1, 0);
         assert!(result == 25.0);
     }
 
     #[test]
     fn calculate_cofactor() {
-        let m1 = Matrix::create_matrix(3, 3, vec![3.0, 5.0, 0.0, 2.0, -1.0, -7.0, 6.0, -1.0, 5.0]);
+        let m1 = Matrix::new(3, 3, vec![3.0, 5.0, 0.0, 2.0, -1.0, -7.0, 6.0, -1.0, 5.0]);
         let minor1 = m1.minor(0, 0);
         let cofactor1 = m1.cofactor(0, 0);
         let minor2 = m1.minor(1, 0);
@@ -446,7 +442,7 @@ mod tests {
 
     #[test]
     fn large_determinant_3x3() {
-        let m1 = Matrix::create_matrix(3, 3, vec![1.0, 2.0, 6.0, -5.0, 8.0, -4.0, 2.0, 6.0, 4.0]);
+        let m1 = Matrix::new(3, 3, vec![1.0, 2.0, 6.0, -5.0, 8.0, -4.0, 2.0, 6.0, 4.0]);
         let cofactor1 = m1.cofactor(0, 0);
         let cofactor2 = m1.cofactor(0, 1);
         let cofactor3 = m1.cofactor(0, 2);
@@ -459,7 +455,7 @@ mod tests {
 
     #[test]
     fn large_determinant_4x4() {
-        let m1 = Matrix::create_matrix(
+        let m1 = Matrix::new(
             4,
             4,
             vec![
@@ -482,7 +478,7 @@ mod tests {
 
     #[test]
     fn is_invertable() {
-        let m1 = Matrix::create_matrix(
+        let m1 = Matrix::new(
             4,
             4,
             vec![
@@ -494,7 +490,7 @@ mod tests {
 
     #[test]
     fn is_not_invertable() {
-        let m1 = Matrix::create_matrix(
+        let m1 = Matrix::new(
             4,
             4,
             vec![
@@ -506,7 +502,7 @@ mod tests {
 
     #[test]
     fn inverse_1() {
-        let m1 = Matrix::create_matrix(
+        let m1 = Matrix::new(
             4,
             4,
             vec![
@@ -514,7 +510,7 @@ mod tests {
             ],
         );
 
-        let expected = Matrix::create_matrix(
+        let expected = Matrix::new(
             4,
             4,
             vec![
@@ -530,7 +526,7 @@ mod tests {
 
     #[test]
     fn inverse_2() {
-        let m1 = Matrix::create_matrix(
+        let m1 = Matrix::new(
             4,
             4,
             vec![
@@ -539,7 +535,7 @@ mod tests {
             ],
         );
 
-        let expected = Matrix::create_matrix(
+        let expected = Matrix::new(
             4,
             4,
             vec![
@@ -555,7 +551,7 @@ mod tests {
 
     #[test]
     fn test_inverse() {
-        let m1 = Matrix::create_matrix(
+        let m1 = Matrix::new(
             4,
             4,
             vec![
@@ -564,7 +560,7 @@ mod tests {
             ],
         );
 
-        let m2 = Matrix::create_matrix(
+        let m2 = Matrix::new(
             4,
             4,
             vec![
@@ -572,9 +568,9 @@ mod tests {
             ],
         );
 
-        let m3 = m1.clone() * &m2;
+        let m3 = &m1 * &m2;
 
-        let m4 = m3 * &m2.inverse().expect("m2 didn't get invsersed");
+        let m4 = &m3 * &m2.inverse().expect("m2 didn't get invsersed");
 
         assert!(m4.equals(&m1) == true);
     }

@@ -9,7 +9,7 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    pub fn create_canvas(width: usize, height: usize) -> Canvas {
+    pub fn new(width: usize, height: usize) -> Canvas {
         Canvas {
             width,
             height,
@@ -48,13 +48,15 @@ impl Canvas {
 
 #[cfg(test)]
 mod tests {
-    use crate::math::tuple::Tuple;
+    use std::f64::consts::PI;
+
+    use crate::math::{transform::transform, tuple::Tuple};
 
     use super::*;
 
     #[test]
     fn create_canvas() {
-        let canvas = Canvas::create_canvas(100, 100);
+        let canvas = Canvas::new(100, 100);
         let black = Color::new_color(0.0, 0.0, 0.0);
         for pixel in canvas.pixels.iter() {
             assert_eq!(pixel.equals(&black), true);
@@ -63,7 +65,7 @@ mod tests {
 
     #[test]
     fn set_pixel() {
-        let mut canvas = Canvas::create_canvas(100, 100);
+        let mut canvas = Canvas::new(100, 100);
         let red = Color::new_color(1.0, 0.0, 0.0);
         canvas.set_pixel(3, 3, &red);
         let pixel = canvas.get_pixel(3, 3);
@@ -72,7 +74,7 @@ mod tests {
 
     #[test]
     fn draw_projectile() {
-        let mut canvas = Canvas::create_canvas(1000, 1000);
+        let mut canvas = Canvas::new(1000, 1000);
         let red = Color::new_color(1.0, 0.0, 0.0);
 
         let mut projectile = Tuple::new_point(0.0, 999.0, 0.0);
@@ -93,6 +95,28 @@ mod tests {
             velocity += gravity;
         }
         canvas.set_pixel(3, 3, &red);
+        canvas.save_to_ppm();
+    }
+
+    #[test]
+    fn draw_clock() {
+        let mut canvas = Canvas::new(100, 100);
+        let mut color = Color::new_color(1.0, 1.0, 0.5);
+
+        let mut dot = Tuple::new_point(25.0, 0.0, 0.0);
+
+        let offset = transform::new_translation(50.0, 50.0, 0.0);
+        let rotate = transform::new_rotation_z(PI / 32.0);
+
+        for _ in 0..100 {
+            dot = &rotate * dot;
+            let with_offset = &offset * dot;
+            let x = with_offset.x as usize;
+            let y = with_offset.y as usize;
+            canvas.set_pixel(x, y, &color);
+            color = &rotate * color;
+        }
+
         canvas.save_to_ppm();
     }
 }
